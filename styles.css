@@ -1,0 +1,35 @@
+:root {
+  --cell-size: 30px;
+  --row-size: 15;
+}
+body {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fff9f9;
+}
+
+#grid {
+  display: grid;
+  grid-template-columns: repeat(var(--row-size), var(--cell-size));
+  grid-template-rows: repeat(var(--row-size), var(--cell-size));
+  background-color: black;
+  transform: scaleY(-1);
+}
+
+.cell {
+  border: 1px solid #fff;
+  width: var(--cell-size);
+  height: var(--cell-size);
+}
+
+.food {
+  background-color: red;
+}
+
+.snake {
+  background-color: lime;
+}
