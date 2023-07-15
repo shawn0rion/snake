@@ -1,4 +1,5 @@
 const gridElement = document.querySelector("#grid");
+let score = 0;
 const grid = {
   numRows: 15,
   numCols: 15,
@@ -46,58 +47,61 @@ function randomCell() {
   return { ...cell };
 }
 
-function checkFoodCollision() {
-  console.log("checking food collision");
-  console.log(`snake head: ${snake.body[0].row}, ${snake.body[0].col}`);
-  console.log(`food: ${food.row}, ${food.col}`);
-  if (snake.body.some((x) => x.row === food.row && x.col === food.col)) {
-    console.log("food collision");
-    return true;
-  }
-  return false;
+function checkOutOfBounds(row, col) {
+  return row < 0 || row === grid.numRows || col < 0 || col === grid.numCols;
 }
 
-// game
+function checkFoodCollision(row, col) {
+  return row === food.row && col === food.col;
+}
+
+function checkSelfCollision(row, col) {
+  return snake.body.some((x) => x.row === row && x.col === col);
+}
+
 function updatePlayer() {
   const tail = { ...snake.body[snake.body.length - 1] };
+  const currentHead = { ...snake.body[0] };
 
-  // unset prev snake head
-  if (snake.body.length === 1) {
-    grid.cells[snake.body[0].row][snake.body[0].col].type = null;
-  }
+  const nextHeadPosition = {
+    row: currentHead.row + snake.dy,
+    col: currentHead.col + snake.dx,
+  };
 
-  // update snake body
-  // start at the back of array and move each segment to the position of the segment in front of it
-  for (let i = snake.body.length - 1; i > 0; i--) {
-    if (snake.body.length === 1) {
-      break;
-    }
-    console.log(
-      `updating body segment ${snake.body[i].row}, ${snake.body[i].col}`
-    );
-    const row = snake.body[i].row;
-    const col = snake.body[i].col;
-    const prevRow = snake.body[i - 1].row;
-    const prevCol = snake.body[i - 1].col;
-    // unset the cell type of the segment that just moved
-    grid.cells[prevRow][prevCol].type = null;
-    grid.cells[row][col].type = "snake";
-    // move each body segment to the position of the segment in front of it
-    snake.body[i] = snake.body[i - 1];
-  }
-  // update snake head
-  snake.body[0].row += snake.dy;
-  snake.body[0].col += snake.dx;
-  grid.cells[snake.body[0].row][snake.body[0].col].type = "snake";
-
-  if (checkFoodCollision()) {
-    // copy the last segment into the end of the body (so it doesn't move)
-    snake.body.push({ ...snake.body[snake.body.length - 1] });
+  if (checkFoodCollision(nextHeadPosition.row, nextHeadPosition.col)) {
+    // this will take on value of current tail next iteration
+    snake.body.push(currentHead);
+    score += 1;
     updateFood();
-  } else if (snake.body.length > 1) {
-    // if the snake didn't eat food, remove the tail
+  } else {
+    // remove the tail
     grid.cells[tail.row][tail.col].type = null;
   }
+
+  if (
+    (snake.body.length > 1 &&
+      checkSelfCollision(nextHeadPosition.row, nextHeadPosition.col)) ||
+    checkOutOfBounds(nextHeadPosition.row, nextHeadPosition.col)
+  ) {
+    score = 0;
+    clearSnake();
+    generateSnake();
+    return;
+  }
+
+  // SNAKE MOVEMENT
+
+  // start at the back so you don't overrite any data
+  for (let i = snake.body.length - 1; i > 0; i--) {
+    // passing the data of the segment in front of it to the current segment
+    const newCell = { ...snake.body[i - 1] };
+    snake.body[i] = snake.body[i - 1];
+    grid.cells[newCell.row][newCell.col].type = "snake";
+  }
+
+  // push the head in direction
+  snake.body[0] = nextHeadPosition;
+  grid.cells[snake.body[0].row][snake.body[0].col].type = "snake";
 }
 
 function updateGrid() {
@@ -145,7 +149,17 @@ function updateFood() {
   // update food
   food.row = cell.row;
   food.col = cell.col;
-  console.log(grid.cells.flat().filter((x) => x.type === "food")[0]);
+}
+
+function clearSnake() {
+  for (let i = 0; i < snake.body.length; i++) {
+    const row = snake.body[i].row;
+    const col = snake.body[i].col;
+    grid.cells[row][col].type = null;
+  }
+  snake.body = [];
+  snake.dy = 0;
+  snake.dx = 0;
 }
 
 function generateSnake() {
@@ -156,9 +170,14 @@ function generateSnake() {
   snake.body.push(cell);
 }
 
+function updateScore() {
+  document.querySelector("#score").textContent = `Score: ${score}`;
+}
+
 function gameLoop() {
   updatePlayer();
   updateGrid();
+  updateScore();
   setTimeout(gameLoop, 500);
 }
 
